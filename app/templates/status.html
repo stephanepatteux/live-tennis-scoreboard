@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Status · Live Tennis Scoreboard{% endblock %}
+{% block content %}
+<section class="status">
+  <h1>Match status</h1>
+  <table class="kv">
+    <tr><th>Format</th><td>Best of {{ (config.sets_to_win * 2) - 1 }} sets (first to {{ config.sets_to_win }})</td></tr>
+    <tr><th>Player 1</th><td>{{ config.player1 }}</td></tr>
+    <tr><th>Player 2</th><td>{{ config.player2 }}</td></tr>
+    <tr><th>Sets won</th><td>{{ state.players[0].sets }} – {{ state.players[1].sets }}</td></tr>
+    <tr><th>Current games</th><td>{{ state.players[0].games }} – {{ state.players[1].games }}</td></tr>
+    <tr><th>Current points</th><td>{{ state.players[0].point }} – {{ state.players[1].point }}</td></tr>
+    <tr><th>In tiebreak</th><td>{{ "Yes" if state.in_tiebreak else "No" }}</td></tr>
+    <tr><th>Deuce</th><td>{{ "Yes" if state.deuce else "No" }}</td></tr>
+    <tr><th>Completed sets</th><td>
+      {% if state.completed_sets %}
+        {% for s in state.completed_sets %}{{ s[0] }}-{{ s[1] }}{% if not loop.last %}, {% endif %}{% endfor %}
+      {% else %}None yet{% endif %}
+    </td></tr>
+    <tr><th>Winner</th><td>{{ state.winner or "Match in progress" }}</td></tr>
+  </table>
+  <p class="hint">Health endpoint: <code>GET /api/health</code> · Live score JSON: <code>GET /api/score</code></p>
+</section>
+{% endblock %}

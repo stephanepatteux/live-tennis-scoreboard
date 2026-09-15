@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Help · Live Tennis Scoreboard{% endblock %}
+{% block content %}
+<section class="help">
+  <h1>How scoring works</h1>
+  <p>This is a live singles tennis scoreboard. Press a player's <strong>Point</strong>
+     button to award them a point; the board updates instantly and stays live.</p>
+
+  <h2>Points within a game</h2>
+  <ul>
+    <li>Points count up <code>0 → 15 → 30 → 40 → game</code>.</li>
+    <li>At <strong>40–40</strong> the game is at <strong>deuce</strong>. A player must then
+        lead by two points: winning one point shows <code>Ad</code> (advantage), and
+        winning the next takes the game.</li>
+  </ul>
+
+  <h2>Games and sets</h2>
+  <ul>
+    <li>The first player to <strong>6 games</strong> with a two-game lead wins the set.</li>
+    <li>At <strong>6–6</strong> a <strong>tiebreak</strong> is played: first to 7 points, win by two.</li>
+    <li>The match is won by the first player to win the configured number of sets
+        (best of 3 by default).</li>
+  </ul>
+
+  <h2>API</h2>
+  <ul>
+    <li><code>GET /api/score</code> — current match snapshot (JSON).</li>
+    <li><code>POST /api/point</code> — body <code>{"player": 0|1}</code> awards a point.</li>
+    <li><code>POST /api/reset</code> — start a fresh match.</li>
+    <li><code>GET /api/health</code> — liveness probe.</li>
+  </ul>
+</section>
+{% endblock %}

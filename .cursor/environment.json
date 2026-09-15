@@ -1,0 +1,17 @@
+{
+  "name": "Live Tennis Scoreboard",
+  "install": "bash scripts/cloud-install.sh",
+  "terminals": [
+    {
+      "name": "web",
+      "command": "source .venv/bin/activate && HOST=0.0.0.0 PORT=5000 python wsgi.py",
+      "description": "Flask dev server for the tennis scoreboard on http://localhost:5000"
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 5000
+    }
+  ]
+}
