@@ -1,13 +1,16 @@
-# Tennis Trader Board
+# Tennis Trader Board — live tennis scores for Betfair trading
 
-A self-hosted **live tennis scoreboard built for Betfair tennis traders** — ATP &amp;
-WTA sets, games, points, who is serving, **15–40 / 0–40 break-point alerts**, and a
-**model win %** next to your ladder. Every point is **pushed the instant it is
-scored** over a WebSocket — there is no polling and no refresh delay. Scores are
-informational — **not tips**.
+A self-hosted, real-time **tennis scoreboard built for Betfair tennis traders**.
+It shows ATP &amp; WTA **sets, games, points, who is serving, 15–40 / 0–40
+break-point alerts**, and a **model win %** next to your ladder — and every point
+is **pushed the instant it is scored** over a WebSocket, so there is no polling and
+no refresh delay. Perfect as a **second screen** next to Betfair Match Odds. Scores
+are informational — **not tips**.
 
 This is the open-source version of the board hosted at
 **[botblog.co.uk/tennis-trader-board](https://botblog.co.uk/tennis-trader-board/)**.
+
+![The Tennis Trader Board: a live tennis scoreboard for Betfair traders showing ATP/WTA sets, games, points, server, break-point alerts and model win %](docs/images/board.png)
 
 > ## ⚡ Real-time push requires a Live Tennis API **Ultra** key
 > The point-by-point push feed is an **Ultra-only** capability. Get an Ultra key
@@ -15,6 +18,50 @@ This is the open-source version of the board hosted at
 > **[Subscribe to Ultra](https://affiliates.livetennisapi.com/r/botblog)**.
 > _[Why Ultra is required](#why-an-ultra-key-is-required-for-real-time-push) ·
 > [Affiliate disclosure](#affiliate-disclosure)._
+
+## Contents
+
+- [Who it's for](#who-its-for)
+- [What to expect](#what-to-expect)
+- [Why an Ultra key is required](#why-an-ultra-key-is-required-for-real-time-push)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [Configuration](#configuration)
+- [Deploy](#deploy)
+- [FAQ](#faq)
+- [Affiliate disclosure](#affiliate-disclosure) · [Disclaimer](#disclaimer)
+
+## Who it's for
+
+Betfair (and other exchange) **in-play tennis traders** who want a fast, no-frills
+**second-screen scoreboard** focused on the moments that move prices — breaks of
+serve, 15–40 / 0–40, deuce and tiebreaks — rather than a fan scoreboard. If you
+trade tennis Match Odds and want to *see the point before the market reacts*, this
+is for you.
+
+## What to expect
+
+**Two modes:**
+
+| Mode | When | What you see |
+| ---- | ---- | ------------ |
+| **Live push** | You set an Ultra key | Real ATP/WTA matches, each point pushed the instant it is played, with the live model win %. |
+| **Demo** | No key set | Locally **simulated** points so you can preview the UI. Clearly labelled; **not real data**. |
+
+**On the board**, each match card shows: the players (with a dot + "serving"
+badge on the server), **Sets**, **Games**, **Points** (`0/15/30/40/AD`), the
+**Model** win % for each player, and the completed set history. When a game reaches
+a trading trigger you get a coloured **alert pill**:
+
+- `0–40` (triple break point) and `AD` break are the hottest;
+- `15–40`, `30–40`, any break point, `Deuce`, and `Tiebreak` are also flagged;
+- optional **sound** + a toast pop when a new alert fires.
+
+**Trader tools:** filter by **ATP/WTA**, **surface** (clay/hard/grass),
+singles-only, a personal **★ watchlist**, and search. Paste **player 1's decimal
+odds** and the card shows the gap between the **model %** and the market's
+**implied %** in percentage points. **Compact** mode and **Pop out** give you a slim
+second-monitor window.
 
 ## Why an Ultra key is required for real-time push
 
@@ -123,6 +170,34 @@ gunicorn wsgi:app --bind 0.0.0.0:5000 --worker-class gthread --threads 16 --work
 Set `LIVE_TENNIS_API_KEY` (Ultra) in the host environment — never in the repo. Use a
 single worker (or a shared broker) so one upstream Ultra WebSocket is shared; see
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
+
+## FAQ
+
+**Is this a Betfair betting bot?** No. It is a **read-only scoreboard**. It shows
+live scores, break-point alerts and a model win % so you can trade manually on
+Betfair. It never places bets and is not a Betfair API key.
+
+**How is it different from Flashscore / BBC live tennis scores?** Fan scoreboards
+show results. This is built for **Betfair tennis trading**: who is serving, 15–40 /
+0–40 break-point alerts, ATP/WTA filters, a model win % vs your odds, and a compact
+second-screen view.
+
+**Do I need an API key?** For **real** live scores, yes — a **Live Tennis API Ultra**
+key (the push feed is Ultra-only). Without a key the board runs in demo mode with
+simulated points. See [Why Ultra is required](#why-an-ultra-key-is-required-for-real-time-push).
+
+**Why not just poll every few seconds?** Polling misses the exact moment a point
+lands and burns rate-limited quota. The Ultra WebSocket pushes **every point** with
+no delay — this board is push-only by design.
+
+**Can I filter for 15–40 and other break points?** Yes — 0–40, 15–40, 30–40, any
+break point, deuce and tiebreak, with pinning and an optional sound alert.
+
+**Can I open it on a second monitor?** Yes — use **Compact** and **Pop out** for a
+slim window (`?embed=1`).
+
+**Is my API key safe?** Yes. It is read from the environment server-side and sent to
+Live Tennis API as a header; it is never sent to the browser and never committed.
 
 ## Affiliate disclosure
 
