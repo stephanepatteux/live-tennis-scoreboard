@@ -14,7 +14,7 @@ are informational — **not tips**.
 This is the open-source version of the board hosted at
 **[botblog.co.uk/tennis-trader-board](https://botblog.co.uk/tennis-trader-board/)**.
 
-![The Tennis Trader Board: a live tennis scoreboard for Betfair traders showing ATP/WTA sets, games, points, server, break-point alerts and model win %](docs/images/board.png)
+![The Tennis Trader Board updating in real time: a live tennis scoreboard for Betfair traders showing ATP/WTA sets, games, points, server, break-point alerts and model win %](docs/images/board.gif)
 
 > ## ⚡ Real-time push requires a Live Tennis API **Ultra** key
 > The point-by-point push feed is an **Ultra-only** capability. Get an Ultra key
@@ -175,6 +175,24 @@ gunicorn wsgi:app --bind 0.0.0.0:5000 --worker-class gthread --threads 16 --work
 Set `LIVE_TENNIS_API_KEY` (Ultra) in the host environment — never in the repo. Use a
 single worker (or a shared broker) so one upstream Ultra WebSocket is shared; see
 [`docs/OPERATIONS.md`](docs/OPERATIONS.md).
+
+### Docker
+
+```bash
+docker build -t tennis-trader-board .
+# Demo mode (no key):
+docker run --rm -p 5000:5000 tennis-trader-board
+# Live push (your own Ultra key, passed at runtime — never baked into the image):
+docker run --rm -p 5000:5000 -e LIVE_TENNIS_API_KEY=your_ultra_key tennis-trader-board
+```
+
+The image already uses the correct SSE-friendly gunicorn settings.
+
+## Contributing
+
+Contributions welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). Please run
+`pytest` (CI runs it too) and never commit secrets. Security reports: see
+[`SECURITY.md`](SECURITY.md).
 
 ## FAQ
 
