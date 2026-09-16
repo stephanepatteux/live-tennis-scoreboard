@@ -95,8 +95,9 @@ unlocks the **live win-probability model** shown in the board's Model column.
 
 There is **no 8-second polling fallback**. Without an Ultra key the board runs in a
 clearly-labelled **demo mode** that generates fake points locally so you can preview
-the interface — it is not real data. Add an Ultra key and the board connects to the
-Ultra WebSocket and shows real matches, point by point.
+the interface — it is not real data. Add an
+[Ultra key](https://affiliates.livetennisapi.com/r/botblog) (code `botblog`) and the
+board connects to the Ultra WebSocket and shows real matches, point by point.
 
 > **No API key ships with this project.** This repository contains **no key at
 > all** — not even a hidden or example one. You buy your own Live Tennis API Ultra
@@ -182,8 +183,9 @@ show results. This is built for **Betfair tennis trading**: who is serving, 15�
 0–40 break-point alerts, ATP/WTA filters, a model win % vs your odds, and a compact
 second-screen view.
 
-**Do I need an API key?** For **real** live scores, yes — a **Live Tennis API Ultra**
-key (the push feed is Ultra-only). Without a key the board runs in demo mode with
+**Do I need an API key?** For **real** live scores, yes — a
+**[Live Tennis API Ultra](https://affiliates.livetennisapi.com/r/botblog)** key
+(use code `botblog`; the push feed is Ultra-only). Without a key the board runs in demo mode with
 simulated points. See [Why Ultra is required](#why-an-ultra-key-is-required-for-real-time-push).
 
 **Why not just poll every few seconds?** Polling misses the exact moment a point
