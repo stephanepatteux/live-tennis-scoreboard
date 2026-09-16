@@ -6,11 +6,12 @@
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-cp .env.example .env          # optional; add LIVE_TENNIS_API_KEY for live scores
+cp .env.example .env          # add LIVE_TENNIS_API_KEY (Ultra) for real push
 python wsgi.py                # dev server on http://127.0.0.1:5000
 ```
 
-Without `LIVE_TENNIS_API_KEY`, the board runs in **demo mode** (simulated matches).
+Without an Ultra key the board runs in **demo mode** (simulated points). Real
+point-by-point push requires an Ultra key — see the README for why.
 
 ## Running tests
 
@@ -20,66 +21,73 @@ pytest
 
 ## Production-style run
 
+The board holds long-lived Server-Sent Events connections, so use a worker class
+that supports concurrent streaming (threads or gevent), and a **single worker** so
+one upstream Ultra WebSocket is shared across viewers:
+
 ```bash
-gunicorn wsgi:app --bind 0.0.0.0:5000
+gunicorn wsgi:app --bind 0.0.0.0:5000 --worker-class gthread --threads 16 --workers 1
 ```
 
-Set `LIVE_TENNIS_API_KEY` in the host environment. Never commit it — `.env` is
-git-ignored and `.env.example` documents every variable.
+With multiple sync workers, each worker would open its own upstream Ultra WebSocket
+and could not share SSE clients. If you must scale out, put a shared message broker
+(e.g. Redis pub/sub) behind `PushHub`. Set `LIVE_TENNIS_API_KEY` in the host
+environment — never in the repo.
 
 ## HTTP surface
 
-| Method & path          | Purpose                                                        |
-| ---------------------- | -------------------------------------------------------------- |
-| `GET /`                | The board page (server-rendered shell, then polled live).      |
-| `GET /api/tennis/live` | Live feed JSON (`?force=1` bypasses the cache).                |
-| `GET /api/health`      | Liveness probe: `{"status":"ok","source":"demo\|livetennisapi"}`. |
-| `GET /audio/tennis-hit.wav` | Alert sound (the front-end also has a synth fallback).    |
+| Method & path            | Purpose                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| `GET /`                  | The board page.                                                  |
+| `GET /api/tennis/stream` | **Server-Sent Events.** Emits a `snapshot` event on connect, then a `score` event per point. |
+| `GET /api/tennis/snapshot` | Current state as one-shot JSON (debug/health; the board uses the stream). |
+| `GET /api/health`        | Liveness: `{"status":"ok","source":"demo\|livetennisapi-ultra"}`. |
+| `GET /audio/tennis-hit.wav` | Alert sound (front-end also has a synth fallback).            |
 
-### `/api/tennis/live` response
+### SSE frames
 
-```json
-{
-  "matches": [
-    {
-      "id": 9001, "tour": "atp", "p1": "Sinner", "p2": "Alcaraz",
-      "tournament": "ATP Finals", "surface": "hard", "format": "Bo3",
-      "is_doubles": false,
-      "sets_p1": 1, "sets_p2": 0, "games_p1": 4, "games_p2": 3,
-      "points_p1": "40", "points_p2": "30", "server": 2, "is_tiebreak": false,
-      "set_history": "6-4 4-3",
-      "alerts": ["30-40", "break-point"], "alert_label": "30–40 · break point",
-      "alert_priority": 3, "win_prob_p1": 61.2
-    }
-  ],
-  "updated_at": "2026-09-16T06:10:00+00:00",
-  "cached": false, "alert_count": 1, "source": "demo"
-}
+```
+event: snapshot
+data: {"matches": [ ...all current matches... ], "updated_at": "...", "alert_count": 1, "source": "livetennisapi-ultra"}
+
+event: score
+data: { "id": 9001, "p1": "Sinner", "p2": "Alcaraz", "sets_p1": 1, ... , "alerts": ["30-40","break-point"], "win_prob_p1": 61.2 }
 ```
 
-## Data flow & key safety
+`: keepalive` comment lines are sent when idle to hold the connection open.
 
-- The browser polls **only** this app's `/api/tennis/live`. The API key is read
-  from the environment in `app/providers/livetennisapi.py` and sent to the upstream
-  API as a request header. It is never rendered into the page or shipped to JS.
-- `FEED_CACHE_TTL` caches one upstream refresh and shares it across all viewers, so
-  many second screens cost the provider one request. On an upstream error the last
-  good payload is served (marked `cached`) instead of blanking the board.
+## Data flow & Ultra WebSocket
 
-## Providers
+```
+Browser ──SSE──▶ Flask (PushHub) ──WebSocket──▶ Live Tennis API Ultra
+```
 
-| Provider                    | When it's used                        |
-| --------------------------- | ------------------------------------- |
-| `providers/livetennisapi.py`| `LIVE_TENNIS_API_KEY` is set.         |
-| `providers/demo.py`         | No key set — simulated live matches.  |
+1. `UltraPushSource` (`app/push/sources.py`) mints a token: `GET /ws-token` with
+   `Authorization: Bearer <ULTRA key>` → `{token, ws_url, channels}`.
+2. It opens `ws_url`, sends `{"connect":{"token":...}}`, subscribes to `slate:all`,
+   and receives `{"push":{"pub":{"data": <score frame>}}}` on each score commit.
+3. Each frame is mapped (`app/mapping.py`) into the board's match shape and
+   published to the `PushHub`, which fans it out to all SSE clients.
+4. Heartbeats (`{}`) are answered promptly; the token is short-lived, so the source
+   mints a fresh one and re-subscribes on every reconnect.
+
+With no key, `DemoPushSource` publishes simulated points instead — same hub, same
+SSE frames, clearly labelled `source: "demo"`.
+
+## Key safety
+
+The Ultra key is read from the environment server-side and sent to Live Tennis API
+as a request header. It is never rendered into the page, shipped to the browser, or
+committed (`.env` is git-ignored; `.env.example` documents every variable).
 
 ## State model
 
-There is no database. The demo simulation and the feed cache are in-memory, so
-restarting the process resets them. No data backfill is ever required.
+No database. The hub state and demo simulation are in-memory, so restarting the
+process resets them. No data backfill is ever required.
 
 ## Cloud Agent environment
 
 Defined in [`.cursor/environment.json`](../.cursor/environment.json): idempotent
 `install` (`scripts/cloud-install.sh`) creates `.venv` and installs deps; the `web`
-terminal runs the dev server on port 5000 (demo mode unless a key is provided).
+terminal runs the dev server on port 5000 (demo mode unless an Ultra key is set).
+```

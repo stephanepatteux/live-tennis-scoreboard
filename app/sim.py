@@ -1,25 +1,18 @@
-"""Demo provider: a self-contained simulation of live tennis matches.
+"""A tiny tennis match simulation used by the demo push source.
 
-This lets the board run publicly with NO API key — the whole point of the public
-repo. It simulates a handful of ATP/WTA singles and doubles matches that advance
-point-by-point in real time, so sets, games, points, servers, break-point alerts
-and tiebreaks all move on their own. Swap in a Live Tennis API key to get the real
-feed (see ``.env.example``).
+This exists only so the public repo is demonstrable with NO Ultra key: it fakes a
+point-by-point stream. It is NOT a substitute for the real feed — real per-point
+data requires a Live Tennis API Ultra key (see the README).
 """
 
 from __future__ import annotations
 
 import random
-import threading
-import time
 
-from .base import Provider, build_match
+from .matches import build_match
 
-# Roughly one point every N seconds per match, so the board visibly evolves.
-_SECONDS_PER_POINT = 6.0
-
-_SEED_MATCHES = [
-    # id, p1, p2, tour, tournament, surface, format, doubles
+# id, p1, p2, tour, tournament, surface, format, doubles
+SEED_MATCHES = [
     (9001, "Sinner", "Alcaraz", "atp", "ATP Finals", "hard", "Bo3", False),
     (9002, "Swiatek", "Sabalenka", "wta", "WTA Finals", "hard", "Bo3", False),
     (9003, "Djokovic", "Medvedev", "atp", "Paris Masters", "hard", "Bo3", False),
@@ -31,8 +24,8 @@ _SEED_MATCHES = [
 ]
 
 
-class _MatchSim:
-    """A tiny best-of-3 singles/doubles state machine."""
+class MatchSim:
+    """A best-of-3 singles/doubles state machine advanced one point at a time."""
 
     def __init__(self, seed):
         self.rng = random.Random(seed)
@@ -52,12 +45,10 @@ class _MatchSim:
         self.is_tiebreak = False
         self.done = False
 
-    # -- point simulation -------------------------------------------------
     def play_point(self):
         if self.done:
             self.reset()
             return
-        # Server wins the point more often than not.
         server_wins = self.rng.random() < 0.63
         winner = self.server if server_wins else (3 - self.server)
         if self.is_tiebreak:
@@ -95,7 +86,6 @@ class _MatchSim:
             self.tb_p2 += 1
         a, b = self.tb_p1, self.tb_p2
         if max(a, b) >= 7 and abs(a - b) >= 2:
-            # Tiebreak winner takes the set 7-6.
             if a > b:
                 self.games_p1 += 1
                 self._win_set(1)
@@ -116,7 +106,6 @@ class _MatchSim:
         if max(self.sets_p1, self.sets_p2) >= 2:
             self.done = True
 
-    # -- display ----------------------------------------------------------
     def _disp(self, a, b):
         if a >= 3 and b >= 3:
             if a == b:
@@ -135,62 +124,27 @@ class _MatchSim:
         return " ".join(parts)
 
 
-class DemoProvider(Provider):
-    name = "demo"
-
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._sims = {}
-        for cfg in _SEED_MATCHES:
-            sim = _MatchSim(seed=cfg[0])
-            # Pre-play a variable number of points so matches start mid-flight.
-            for _ in range(sim.rng.randint(6, 60)):
-                sim.play_point()
-            self._sims[cfg[0]] = sim
-        self._last = time.monotonic()
-
-    def _advance(self):
-        now = time.monotonic()
-        elapsed = now - self._last
-        steps = int(elapsed / _SECONDS_PER_POINT)
-        if steps <= 0:
-            return
-        # Cap so a long idle gap doesn't fast-forward the whole match at once.
-        steps = min(steps, 8)
-        self._last = now
-        for sim in self._sims.values():
-            for _ in range(steps):
-                sim.play_point()
-
-    def get_live_matches(self) -> list[dict]:
-        with self._lock:
-            self._advance()
-            out = []
-            for cfg in _SEED_MATCHES:
-                mid, p1, p2, tour, tournament, surface, fmt, doubles = cfg
-                sim = self._sims[mid]
-                pts1, pts2 = sim.points()
-                out.append(
-                    build_match(
-                        id=mid,
-                        p1=p1,
-                        p2=p2,
-                        tour=tour,
-                        tournament=tournament,
-                        surface=surface,
-                        fmt=fmt,
-                        is_doubles=doubles,
-                        sets_p1=sim.sets_p1,
-                        sets_p2=sim.sets_p2,
-                        games_p1=sim.games_p1,
-                        games_p2=sim.games_p2,
-                        points_p1=pts1,
-                        points_p2=pts2,
-                        server=sim.server,
-                        is_tiebreak=sim.is_tiebreak,
-                        set_history=sim.set_history(),
-                        win_prob_p1=None,  # use local model
-                        model_fallback=True,
-                    )
-                )
-            return out
+def sim_to_match(sim: MatchSim, cfg) -> dict:
+    mid, p1, p2, tour, tournament, surface, fmt, doubles = cfg
+    pts1, pts2 = sim.points()
+    return build_match(
+        id=mid,
+        p1=p1,
+        p2=p2,
+        tour=tour,
+        tournament=tournament,
+        surface=surface,
+        fmt=fmt,
+        is_doubles=doubles,
+        sets_p1=sim.sets_p1,
+        sets_p2=sim.sets_p2,
+        games_p1=sim.games_p1,
+        games_p2=sim.games_p2,
+        points_p1=pts1,
+        points_p2=pts2,
+        server=sim.server,
+        is_tiebreak=sim.is_tiebreak,
+        set_history=sim.set_history(),
+        win_prob_p1=None,
+        model_fallback=True,
+    )

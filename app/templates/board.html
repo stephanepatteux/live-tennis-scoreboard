@@ -12,13 +12,15 @@
     <div class="ttb-page" id="ttb-page">
       <header class="ttb-top">
         <div class="ttb-top-inner">
-          <p class="ttb-eyebrow">Tennis Trader Board · free live tennis scores</p>
-          <h1 class="ttb-title">Free Live Tennis Scores for Betfair Trading</h1>
-          <p class="ttb-lead">The <strong>Tennis Trader Board</strong> is a free second-screen scoreboard for Betfair tennis traders — ATP &amp; WTA sets, games, points, server, 15–40 alerts and model win %. It <strong>checks scores about every 8 seconds</strong>, not on every point. Powered by <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Live Tennis API</a>. Not tips.</p>
+          <p class="ttb-eyebrow">Tennis Trader Board · real-time point-by-point push</p>
+          <h1 class="ttb-title">Live Tennis Scores for Betfair Trading</h1>
+          <p class="ttb-lead">The <strong>Tennis Trader Board</strong> is a second-screen scoreboard for Betfair tennis traders — ATP &amp; WTA sets, games, points, server, 15–40 alerts and model win %. Every point is <strong>pushed the moment it is scored</strong> over a WebSocket — no polling, no waiting. Powered by <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Live Tennis API Ultra</a>. Not tips.</p>
           {% if source == 'demo' %}
-          <p class="ttb-demo-note">⚠️ <strong>Demo data.</strong> No API key is set, so scores are simulated. Add a <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Live Tennis API</a> key (see the README) for real live scores.</p>
+          <p class="ttb-demo-note">⚠️ <strong>Demo mode — simulated points.</strong> No Ultra key is set, so these points are generated locally to show how the board behaves. Real point-by-point push needs a <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Live Tennis API Ultra</a> key (code <strong>{{ affiliate_code }}</strong>) — see the README for why.</p>
+          {% else %}
+          <p class="ttb-demo-note">🟢 <strong>Live push connected.</strong> Points arrive over the Ultra WebSocket as they are scored.</p>
           {% endif %}
-          <p class="ttb-ultra-door"><strong>Ultra</strong> is the upgrade: a WebSocket that <em>pushes</em> each point to your own dashboard or bot — no 8-second wait, plus the live win-probability model. <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Subscribe to Ultra (10% off)</a><span class="ttb-ultra-door-note"> — use this link, then code <strong>{{ affiliate_code }}</strong>. Choose Ultra, not the free key.</span></p>
+          <p class="ttb-ultra-door"><strong>Ultra</strong> is what makes the push feed work: a WebSocket that <em>pushes</em> each point to this board (and to your own dashboard or bot) with no wait, plus the live win-probability model. <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Subscribe to Ultra (10% off)</a><span class="ttb-ultra-door-note"> — use this link, then code <strong>{{ affiliate_code }}</strong>. Choose Ultra, not the free key.</span></p>
         </div>
       </header>
 
@@ -101,7 +103,7 @@
       <div class="ttb-dual-cta">
         <div class="ttb-dual-cta-card">
           <p class="ttb-dual-cta-heading">Ultra: point-by-point push feed</p>
-          <p class="ttb-dual-cta-sub">This free board polls about every 8 seconds. Live Tennis API Ultra pushes each point over a WebSocket to <em>your</em> dashboard or bot, with the win-probability model. Not a Betfair key — tennis data only.</p>
+          <p class="ttb-dual-cta-sub">This board is push-only: Live Tennis API Ultra pushes each point over a WebSocket to this board (and to <em>your</em> dashboard or bot) with no wait, plus the win-probability model. Not a Betfair key — tennis data only.</p>
           <a class="ttb-dual-cta-btn" target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Subscribe to Ultra (10% off) →</a>
           <p class="ttb-dual-cta-note"><em>Use this affiliate link, then code <strong>{{ affiliate_code }}</strong> at checkout. Choose Ultra, not the free key.</em></p>
         </div>

@@ -1,8 +1,7 @@
 (function () {
   "use strict";
 
-  var API = "/api/tennis/live";
-  var REFRESH_MS = 8000;
+  var STREAM_URL = "/api/tennis/stream";
   var FLASH_MS = 1600;
 
   var KEYS = {
@@ -35,12 +34,13 @@
     typeof location !== "undefined" &&
     /(?:^|[?&])embed=1(?:&|$)/.test(location.search || "");
 
-  var timer = null;
+  var evtSource = null;
+  var connState = "connecting";
   var clockTimer = null;
   var inFlight = false;
   var pendingForce = false;
   var lastMatches = [];
-  var lastMeta = { updated_at: null, cached: false, alert_count: 0 };
+  var lastMeta = { updated_at: null, source: null };
   var lastPaintFp = "";
   var prevAlertMap = {};
   var flashUntil = {};
@@ -698,77 +698,97 @@
       singlesOnly ||
       watchOnly ||
       searchQ.trim();
+    var alertCount = 0;
+    lastMatches.forEach(function (m) {
+      if (m.alert_priority) alertCount++;
+    });
+    var srcLabel =
+      lastMeta.source === "demo"
+        ? "demo push (simulated \u2014 add an Ultra key for real points)"
+        : "live push \u00b7 Ultra";
+    var conn =
+      connState === "reconnecting"
+        ? " \u00b7 reconnecting\u2026"
+        : connState === "connecting"
+        ? " \u00b7 connecting\u2026"
+        : "";
     setStatus(
       lastMatches.length +
         " live in feed" +
         (filterOn ? " · showing " + matches.length + "/" + lastMatches.length : "") +
-        (lastMeta.alert_count
-          ? " · " + lastMeta.alert_count + " score alert" + (lastMeta.alert_count === 1 ? "" : "s")
+        (alertCount
+          ? " · " + alertCount + " score alert" + (alertCount === 1 ? "" : "s")
           : "") +
         " · updated " +
         when +
-        (lastMeta.cached ? " (cached)" : "") +
-        " · 8s check"
+        " · " +
+        srcLabel +
+        conn
     );
   }
 
-  function load(opts) {
-    opts = opts || {};
-    var forceUi = !!opts.force;
-    var bust = !!opts.bust;
-    if (inFlight) {
-      if (forceUi) pendingForce = true;
+  // Real-time push over Server-Sent Events. The stream is fed by the Live Tennis
+  // API Ultra WebSocket (real per-point data) or, with no key, the demo
+  // simulation. There is deliberately no periodic polling fallback.
+  function mergeMatch(match) {
+    var id = String(match.id);
+    for (var i = 0; i < lastMatches.length; i++) {
+      if (String(lastMatches[i].id) === id) {
+        lastMatches[i] = match;
+        return;
+      }
+    }
+    lastMatches.push(match);
+  }
+
+  function applySnapshot(data) {
+    lastMatches = data.matches || [];
+    lastMeta = { updated_at: data.updated_at, source: data.source };
+    // Baseline the alert map so connecting does not toast every existing alert.
+    prevAlertMap = {};
+    lastMatches.forEach(function (m) {
+      prevAlertMap[String(m.id)] = (m.alerts || []).slice();
+    });
+    trackScoreChanges(lastMatches);
+    paint(true);
+  }
+
+  function applyScore(match) {
+    mergeMatch(match);
+    lastMeta.updated_at = new Date().toISOString();
+    trackScoreChanges([match]);
+    risingEdgeAlerts([match]);
+    paint(false);
+  }
+
+  function connectStream() {
+    if (typeof EventSource === "undefined") {
+      board.innerHTML =
+        '<div class="ttb-error">This browser does not support Server-Sent Events, ' +
+        "which the live push feed requires.</div>";
       return;
     }
-    inFlight = true;
-    if (forceUi && refreshBtn) {
-      refreshBtn.disabled = true;
-      setStatus("Refreshing…");
+    if (evtSource) {
+      try {
+        evtSource.close();
+      } catch (e) {}
     }
-    var url = API;
-    if (bust) url += (url.indexOf("?") === -1 ? "?" : "&") + "force=1&_=" + Date.now();
-    fetch(url, { credentials: "same-origin", cache: "no-store" })
-      .then(function (r) {
-        if (!r.ok) {
-          var err = new Error("HTTP " + r.status);
-          err.status = r.status;
-          return r.text().then(function (body) {
-            err.body = (body || "").slice(0, 200);
-            throw err;
-          });
-        }
-        return r.json();
-      })
-      .then(function (data) {
-        lastMatches = data.matches || [];
-        lastMeta = {
-          updated_at: data.updated_at,
-          cached: !!data.cached,
-          alert_count: data.alert_count || 0,
-        };
-        trackScoreChanges(lastMatches);
-        risingEdgeAlerts(lastMatches);
-        paint(forceUi);
-      })
-      .catch(function (err) {
-        var hint = err.message || "error";
-        if (err.status === 429) {
-          hint = "HTTP 429 — BotBlog board limit (not Live Tennis API)";
-        }
-        board.innerHTML =
-          '<div class="ttb-error">Could not load the live board (' +
-          esc(hint) +
-          "). Retrying…</div>";
-        setStatus("Connection issue — will retry");
-      })
-      .finally(function () {
-        inFlight = false;
-        if (refreshBtn) refreshBtn.disabled = false;
-        if (pendingForce) {
-          pendingForce = false;
-          load({ force: true, bust: true });
-        }
-      });
+    connState = "connecting";
+    setStatus("Connecting to live push…");
+    evtSource = new EventSource(STREAM_URL);
+    evtSource.addEventListener("snapshot", function (e) {
+      connState = "live";
+      applySnapshot(JSON.parse(e.data));
+    });
+    evtSource.addEventListener("score", function (e) {
+      connState = "live";
+      applyScore(JSON.parse(e.data));
+    });
+    evtSource.onerror = function () {
+      // EventSource reconnects on its own; surface the state, keep last scores.
+      connState = "reconnecting";
+      paint(true);
+    };
   }
 
   function toggleInList(list, code) {
@@ -905,9 +925,7 @@
         paint(true);
       });
     }
-    load();
-    if (timer) clearInterval(timer);
-    timer = setInterval(load, REFRESH_MS);
+    connectStream();
     if (clockTimer) clearInterval(clockTimer);
     clockTimer = setInterval(function () {
       updateAgoLabels();
@@ -927,7 +945,8 @@
   if (refreshBtn) {
     refreshBtn.addEventListener("click", function () {
       if (soundOn && !reduceMotion) playBallHit();
-      load({ force: true, bust: true });
+      // Reconnect the stream to pull a fresh full snapshot.
+      connectStream();
     });
   }
 

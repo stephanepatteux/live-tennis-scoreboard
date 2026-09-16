@@ -1,2 +1,4 @@
 Flask==3.0.3
 gunicorn==22.0.0
+# Ultra WebSocket push feed (only used when a Live Tennis API Ultra key is set).
+websocket-client==1.8.0
