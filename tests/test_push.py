@@ -47,10 +47,10 @@ def test_hub_static_for():
 def test_get_push_source_selection():
     with mock.patch.dict(os.environ, {}, clear=True):
         assert isinstance(get_push_source(), DemoPushSource)
-    with mock.patch.dict(os.environ, {"LIVE_TENNIS_API_KEY": "twjp_x"}, clear=True):
+    with mock.patch.dict(os.environ, {"LIVE_TENNIS_API_KEY": "test-key"}, clear=True):
         src = get_push_source()
         assert isinstance(src, UltraPushSource)
-        assert src.api_key == "twjp_x"
+        assert src.api_key == "test-key"
 
 
 def test_demo_source_seeds_and_advances():
@@ -126,7 +126,7 @@ def test_ultra_handle_raw_batched_newline_delimited():
 
 
 def test_ultra_mint_ws_token_uses_bearer_auth():
-    src = UltraPushSource(api_key="twjp_secret", base_url="http://api.test/v1")
+    src = UltraPushSource(api_key="test-key", base_url="http://api.test/v1")
     captured = {}
 
     class FakeResp:
@@ -149,5 +149,5 @@ def test_ultra_mint_ws_token_uses_bearer_auth():
     with mock.patch("urllib.request.urlopen", fake_urlopen):
         info = src.mint_ws_token()
     assert info["ws_url"] == "wss://x/ws"
-    assert captured["auth"] == "Bearer twjp_secret"
+    assert captured["auth"] == "Bearer test-key"
     assert captured["url"].endswith("/ws-token")

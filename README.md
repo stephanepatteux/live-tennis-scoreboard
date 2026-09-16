@@ -51,6 +51,12 @@ clearly-labelled **demo mode** that generates fake points locally so you can pre
 the interface — it is not real data. Add an Ultra key and the board connects to the
 Ultra WebSocket and shows real matches, point by point.
 
+> **No API key ships with this project.** This repository contains **no key at
+> all** — not even a hidden or example one. You buy your own Live Tennis API Ultra
+> key and supply it at runtime via the `LIVE_TENNIS_API_KEY` environment variable
+> (kept in an untracked `.env`, never committed). Until you do, the board stays in
+> demo mode.
+
 ```
 Browser ── SSE /api/tennis/stream ──▶ this app ── WebSocket ──▶ Live Tennis API Ultra
    ▲ each point pushed downstream                 (GET /ws-token → connect → subscribe)
