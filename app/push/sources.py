@@ -139,7 +139,10 @@ class UltraPushSource(PushSource):
             hub.publish(map_api_match(data, self.model_fallback, static=static))
 
     def _run(self, hub: PushHub) -> None:
-        import websocket  # imported lazily so demo mode needs no dependency
+        # Imported lazily so demo mode needs no dependency. A missing library is a
+        # permanent, unrecoverable error, so let it end the thread with a clear
+        # traceback rather than spinning in the reconnect loop below.
+        import websocket
 
         backoff = 1.0
         while not self._stop.is_set():

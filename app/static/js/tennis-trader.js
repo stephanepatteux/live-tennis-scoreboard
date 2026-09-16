@@ -37,8 +37,6 @@
   var evtSource = null;
   var connState = "connecting";
   var clockTimer = null;
-  var inFlight = false;
-  var pendingForce = false;
   var lastMatches = [];
   var lastMeta = { updated_at: null, source: null };
   var lastPaintFp = "";
