@@ -238,3 +238,9 @@ Released under the [MIT License](LICENSE) — free to use, modify, and self-host
 
 Not financial advice. Live scores and model win probability are informational only.
 They are not tips and do not place bets for you.
+
+**18+ only. Please gamble responsibly** — see [BeGambleAware](https://www.begambleaware.org/).
+Trading on betting exchanges carries risk; only stake what you can afford to lose.
+
+**Privacy:** the board stores your filter and odds preferences in your browser's
+`localStorage` only. It sets no cookies and collects no personal data.
