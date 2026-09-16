@@ -23,3 +23,27 @@ jobs:
 
       - name: Run tests
         run: pytest -q
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t tennis-trader-board .
+
+      - name: Smoke test the container (demo mode)
+        run: |
+          docker run -d --name ttb -p 5000:5000 tennis-trader-board
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:5000/api/health > /tmp/health.json; then
+              ok=1; break
+            fi
+            sleep 1
+          done
+          if [ "$ok" != "1" ]; then echo "health check never succeeded"; docker logs ttb; exit 1; fi
+          echo "health: $(cat /tmp/health.json)"
+          grep -q '"status":"ok"' /tmp/health.json
+          grep -q '"source":"demo"' /tmp/health.json
+          curl -sf http://localhost:5000/api/tennis/snapshot | grep -q '"matches"'
+          docker rm -f ttb

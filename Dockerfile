@@ -23,9 +23,4 @@ EXPOSE 5000
 # WebSocket across viewers. --timeout 0 keeps long-lived streams from being
 # reaped. Provide LIVE_TENNIS_API_KEY at runtime for real push (demo otherwise):
 #   docker run -p 5000:5000 -e LIVE_TENNIS_API_KEY=... tennis-trader-board
-CMD ["gunicorn", "wsgi:app", \
-     "--bind", "0.0.0.0:5000", \
-     "--worker-class", "gthread", \
-     "--threads", "16", \
-     "--workers", "1", \
-     "--timeout", "0"]
+CMD ["gunicorn", "wsgi:app", "--bind", "0.0.0.0:5000", "--worker-class", "gthread", "--threads", "16", "--workers", "1", "--timeout", "0"]
