@@ -6,8 +6,11 @@
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
-python wsgi.py            # dev server on http://127.0.0.1:5000
+cp .env.example .env          # optional; add LIVE_TENNIS_API_KEY for live scores
+python wsgi.py                # dev server on http://127.0.0.1:5000
 ```
+
+Without `LIVE_TENNIS_API_KEY`, the board runs in **demo mode** (simulated matches).
 
 ## Running tests
 
@@ -21,40 +24,62 @@ pytest
 gunicorn wsgi:app --bind 0.0.0.0:5000
 ```
 
-## Configuration
-
-All configuration is via environment variables (see [`.env.example`](../.env.example)):
-
-| Variable       | Default    | Purpose                                             |
-| -------------- | ---------- | --------------------------------------------------- |
-| `PLAYER1_NAME` | `Player 1` | Name shown for player 1.                            |
-| `PLAYER2_NAME` | `Player 2` | Name shown for player 2.                            |
-| `SETS_TO_WIN`  | `2`        | Sets required to win the match (2 = best of 3).     |
-| `HOST`         | `127.0.0.1`| Dev server bind host.                               |
-| `PORT`         | `5000`     | Dev server / gunicorn port.                         |
-| `FLASK_DEBUG`  | `0`        | `1` enables Flask debug + auto-reload.              |
+Set `LIVE_TENNIS_API_KEY` in the host environment. Never commit it — `.env` is
+git-ignored and `.env.example` documents every variable.
 
 ## HTTP surface
 
-| Method & path        | Purpose                                    |
-| -------------------- | ------------------------------------------ |
-| `GET /`              | Live scoreboard (server-rendered + polled).|
-| `GET /status`        | Match status summary.                      |
-| `GET /help`          | Scoring rules and API reference.           |
-| `GET /api/health`    | Liveness probe (`{"status":"ok"}`).        |
-| `GET /api/score`     | Current match snapshot (JSON).             |
-| `POST /api/point`    | Award a point: body `{"player": 0\|1}`.    |
-| `POST /api/reset`    | Reset to a fresh match.                    |
+| Method & path          | Purpose                                                        |
+| ---------------------- | -------------------------------------------------------------- |
+| `GET /`                | The board page (server-rendered shell, then polled live).      |
+| `GET /api/tennis/live` | Live feed JSON (`?force=1` bypasses the cache).                |
+| `GET /api/health`      | Liveness probe: `{"status":"ok","source":"demo\|livetennisapi"}`. |
+| `GET /audio/tennis-hit.wav` | Alert sound (the front-end also has a synth fallback).    |
+
+### `/api/tennis/live` response
+
+```json
+{
+  "matches": [
+    {
+      "id": 9001, "tour": "atp", "p1": "Sinner", "p2": "Alcaraz",
+      "tournament": "ATP Finals", "surface": "hard", "format": "Bo3",
+      "is_doubles": false,
+      "sets_p1": 1, "sets_p2": 0, "games_p1": 4, "games_p2": 3,
+      "points_p1": "40", "points_p2": "30", "server": 2, "is_tiebreak": false,
+      "set_history": "6-4 4-3",
+      "alerts": ["30-40", "break-point"], "alert_label": "30–40 · break point",
+      "alert_priority": 3, "win_prob_p1": 61.2
+    }
+  ],
+  "updated_at": "2026-09-16T06:10:00+00:00",
+  "cached": false, "alert_count": 1, "source": "demo"
+}
+```
+
+## Data flow & key safety
+
+- The browser polls **only** this app's `/api/tennis/live`. The API key is read
+  from the environment in `app/providers/livetennisapi.py` and sent to the upstream
+  API as a request header. It is never rendered into the page or shipped to JS.
+- `FEED_CACHE_TTL` caches one upstream refresh and shares it across all viewers, so
+  many second screens cost the provider one request. On an upstream error the last
+  good payload is served (marked `cached`) instead of blanking the board.
+
+## Providers
+
+| Provider                    | When it's used                        |
+| --------------------------- | ------------------------------------- |
+| `providers/livetennisapi.py`| `LIVE_TENNIS_API_KEY` is set.         |
+| `providers/demo.py`         | No key set — simulated live matches.  |
 
 ## State model
 
-A single match is held in memory in the app process and guarded by a lock.
-Restarting the process resets the match. There is no database, so no data
-backfill is ever required.
+There is no database. The demo simulation and the feed cache are in-memory, so
+restarting the process resets them. No data backfill is ever required.
 
 ## Cloud Agent environment
 
-The Cloud Agent environment is defined in [`.cursor/environment.json`](../.cursor/environment.json):
-
-- `install` creates a `.venv` and installs `requirements-dev.txt` (idempotent).
-- The `web` terminal runs the Flask dev server on port 5000.
+Defined in [`.cursor/environment.json`](../.cursor/environment.json): idempotent
+`install` (`scripts/cloud-install.sh`) creates `.venv` and installs deps; the `web`
+terminal runs the dev server on port 5000 (demo mode unless a key is provided).

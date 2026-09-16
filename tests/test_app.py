@@ -1,4 +1,7 @@
-"""Integration tests for the Flask routes and JSON API."""
+"""Integration tests for the Flask routes (demo mode, no API key)."""
+
+import os
+from unittest import mock
 
 import pytest
 
@@ -7,67 +10,40 @@ from app import create_app
 
 @pytest.fixture()
 def client():
-    app = create_app()
+    # Ensure demo mode regardless of the host environment.
+    with mock.patch.dict(os.environ, {"LIVE_TENNIS_API_KEY": ""}, clear=False):
+        app = create_app()
     app.config.update(TESTING=True)
     with app.test_client() as c:
-        # Ensure each test starts from a clean match.
-        c.post("/api/reset")
         yield c
 
 
-def test_home_page_renders(client):
+def test_board_page_renders(client):
     resp = client.get("/")
     assert resp.status_code == 200
-    assert b"Live Tennis Scoreboard" in resp.data
-    assert b"Point" in resp.data
-
-
-def test_help_and_status_pages(client):
-    assert client.get("/help").status_code == 200
-    status = client.get("/status")
-    assert status.status_code == 200
-    assert b"Match status" in status.data
+    body = resp.data.decode()
+    assert 'id="ttb-board"' in body
+    assert "Tennis Trader Board" in body
+    # Affiliate link + code present on the page.
+    assert "affiliates.livetennisapi.com/r/botblog" in body
+    assert "botblog" in body
 
 
 def test_health(client):
-    resp = client.get("/api/health")
+    data = client.get("/api/health").get_json()
+    assert data["status"] == "ok"
+    assert data["source"] == "demo"
+
+
+def test_live_feed_demo(client):
+    data = client.get("/api/tennis/live").get_json()
+    assert "matches" in data and data["matches"]
+    assert data["source"] == "demo"
+    m = data["matches"][0]
+    assert {"p1", "p2", "sets_p1", "games_p1", "points_p1", "win_prob_p1"} <= set(m)
+
+
+def test_audio_asset_served(client):
+    resp = client.get("/audio/tennis-hit.wav")
     assert resp.status_code == 200
-    assert resp.get_json() == {"status": "ok"}
-
-
-def test_score_endpoint_initial(client):
-    data = client.get("/api/score").get_json()
-    assert data["players"][0]["point"] == "0"
-    assert data["winner"] is None
-
-
-def test_point_endpoint_awards_point(client):
-    data = client.post("/api/point", json={"player": 0}).get_json()
-    assert data["players"][0]["point"] == "15"
-
-
-def test_point_endpoint_validation(client):
-    resp = client.post("/api/point", json={"player": 9})
-    assert resp.status_code == 400
-
-
-def test_reset_endpoint(client):
-    client.post("/api/point", json={"player": 0})
-    data = client.post("/api/reset").get_json()
-    assert data["players"][0]["point"] == "0"
-
-
-def test_form_fallback_scoring(client):
-    resp = client.post("/point/0", follow_redirects=False)
-    assert resp.status_code == 302
-    data = client.get("/api/score").get_json()
-    assert data["players"][0]["point"] == "15"
-
-
-def test_full_match_via_api(client):
-    # Player 2 wins best-of-3 with two 6-0 sets (24 love-game points).
-    for _ in range(12):
-        for _ in range(4):
-            client.post("/api/point", json={"player": 1})
-    data = client.get("/api/score").get_json()
-    assert data["winner"] == "Player 2"
+    assert resp.data[:4] == b"RIFF"  # WAV header

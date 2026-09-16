@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Free Live Tennis Scores for Betfair Trading · Tennis Trader Board</title>
+  <meta name="description" content="A free second-screen live tennis scoreboard for Betfair traders: ATP & WTA sets, games, points, server, 15-40 break-point alerts and model win %. Powered by Live Tennis API." />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/tennis-trader.css') }}" />
+</head>
+<body>
+  <main id="main-content">
+    <div class="ttb-page" id="ttb-page">
+      <header class="ttb-top">
+        <div class="ttb-top-inner">
+          <p class="ttb-eyebrow">Tennis Trader Board · free live tennis scores</p>
+          <h1 class="ttb-title">Free Live Tennis Scores for Betfair Trading</h1>
+          <p class="ttb-lead">The <strong>Tennis Trader Board</strong> is a free second-screen scoreboard for Betfair tennis traders — ATP &amp; WTA sets, games, points, server, 15–40 alerts and model win %. It <strong>checks scores about every 8 seconds</strong>, not on every point. Powered by <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Live Tennis API</a>. Not tips.</p>
+          {% if source == 'demo' %}
+          <p class="ttb-demo-note">⚠️ <strong>Demo data.</strong> No API key is set, so scores are simulated. Add a <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Live Tennis API</a> key (see the README) for real live scores.</p>
+          {% endif %}
+          <p class="ttb-ultra-door"><strong>Ultra</strong> is the upgrade: a WebSocket that <em>pushes</em> each point to your own dashboard or bot — no 8-second wait, plus the live win-probability model. <a target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Subscribe to Ultra (10% off)</a><span class="ttb-ultra-door-note"> — use this link, then code <strong>{{ affiliate_code }}</strong>. Choose Ultra, not the free key.</span></p>
+        </div>
+      </header>
+
+      <div class="ttb-bar" id="ttb-filters">
+        <div class="ttb-bar-main">
+          <div class="ttb-bar-row ttb-bar-row--scan">
+            <div class="ttb-chips ttb-chips--inline" role="group" aria-label="ATP or WTA">
+              <button type="button" class="ttb-chip is-active" data-tour="all" aria-pressed="true">All</button>
+              <button type="button" class="ttb-chip" data-tour="atp" aria-pressed="false">ATP</button>
+              <button type="button" class="ttb-chip" data-tour="wta" aria-pressed="false">WTA</button>
+            </div>
+            <input type="search" class="ttb-search" id="ttb-search" placeholder="Search player…" autocomplete="off" />
+            <select class="ttb-select" id="ttb-sort" aria-label="Sort matches">
+              <option value="alerts">Alerts first</option>
+              <option value="model">Model gap</option>
+              <option value="alpha">A–Z</option>
+              <option value="updated">Updated</option>
+            </select>
+          </div>
+          <div class="ttb-bar-row ttb-bar-row--actions">
+            <button type="button" class="ttb-chip" id="ttb-more-btn" data-toggle="more" aria-pressed="false" aria-expanded="false" aria-controls="ttb-more">More filters</button>
+            <button type="button" class="ttb-chip" id="ttb-clear" data-toggle="clear" title="Reset filters">Clear</button>
+            <button type="button" class="ttb-refresh" id="ttb-refresh">Refresh</button>
+            <button type="button" class="ttb-refresh ttb-popout" id="ttb-popout" title="Open the board in its own window for a second monitor">Pop out board</button>
+          </div>
+        </div>
+        <div class="ttb-more" id="ttb-more" hidden>
+          <div class="ttb-more-row">
+            <span class="ttb-filter-label">Surface</span>
+            <div class="ttb-chips" role="group" aria-label="Court surface">
+              <button type="button" class="ttb-chip" data-surface="clay" aria-pressed="false">Clay</button>
+              <button type="button" class="ttb-chip" data-surface="hard" aria-pressed="false">Hard</button>
+              <button type="button" class="ttb-chip" data-surface="grass" aria-pressed="false">Grass</button>
+            </div>
+          </div>
+          <div class="ttb-more-row">
+            <span class="ttb-filter-label">Alerts</span>
+            <div class="ttb-chips" role="group" aria-label="Strategy score alerts">
+              <button type="button" class="ttb-chip" data-strategy="0-40" aria-pressed="false">0–40</button>
+              <button type="button" class="ttb-chip" data-strategy="15-40" aria-pressed="false">15–40</button>
+              <button type="button" class="ttb-chip" data-strategy="30-40" aria-pressed="false">30–40</button>
+              <button type="button" class="ttb-chip" data-strategy="break-point" aria-pressed="false">Any BP</button>
+              <button type="button" class="ttb-chip" data-strategy="deuce" aria-pressed="false">Deuce</button>
+              <button type="button" class="ttb-chip" data-strategy="tiebreak" aria-pressed="false">TB</button>
+            </div>
+          </div>
+          <div class="ttb-more-row">
+            <span class="ttb-filter-label">Pin</span>
+            <div class="ttb-chips" role="group" aria-label="Pinned score alerts">
+              <button type="button" class="ttb-chip ttb-chip--pin" data-pin="0-40" aria-pressed="false">0–40</button>
+              <button type="button" class="ttb-chip ttb-chip--pin" data-pin="15-40" aria-pressed="false">15–40</button>
+              <button type="button" class="ttb-chip ttb-chip--pin" data-pin="30-40" aria-pressed="false">30–40</button>
+              <button type="button" class="ttb-chip ttb-chip--pin" data-pin="break-point" aria-pressed="false">Any BP</button>
+            </div>
+          </div>
+          <div class="ttb-more-row">
+            <span class="ttb-filter-label">View</span>
+            <div class="ttb-chips" role="group">
+              <button type="button" class="ttb-chip" data-toggle="singles" aria-pressed="false">Singles</button>
+              <button type="button" class="ttb-chip" data-toggle="watchlist" aria-pressed="false">★ Mine</button>
+              <button type="button" class="ttb-chip" data-toggle="compact" aria-pressed="false">Compact</button>
+              <button type="button" class="ttb-chip" data-toggle="sound" aria-pressed="false" title="Tennis-ball hit on new alert">Sound</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ttb-toolbar">
+        <div class="ttb-status" id="ttb-status" aria-live="polite">Loading live matches…</div>
+      </div>
+
+      <div class="ttb-board" id="ttb-board" aria-busy="true"></div>
+
+      <aside class="ttb-note">
+        <p><strong>Score alerts, not tips.</strong> After a 15–40 or 0–40 alert, whether the server actually held is something you audit after the match from completed point-by-point tapes. This board stays live; the audit is separate.</p>
+      </aside>
+
+      <div class="ttb-toasts" id="ttb-toasts" aria-live="polite" aria-relevant="additions"></div>
+
+      <div class="ttb-dual-cta">
+        <div class="ttb-dual-cta-card">
+          <p class="ttb-dual-cta-heading">Ultra: point-by-point push feed</p>
+          <p class="ttb-dual-cta-sub">This free board polls about every 8 seconds. Live Tennis API Ultra pushes each point over a WebSocket to <em>your</em> dashboard or bot, with the win-probability model. Not a Betfair key — tennis data only.</p>
+          <a class="ttb-dual-cta-btn" target="_blank" rel="noreferrer noopener sponsored nofollow" href="{{ affiliate_url }}">Subscribe to Ultra (10% off) →</a>
+          <p class="ttb-dual-cta-note"><em>Use this affiliate link, then code <strong>{{ affiliate_code }}</strong> at checkout. Choose Ultra, not the free key.</em></p>
+        </div>
+      </div>
+
+      <aside class="ttb-note">
+        <p><strong>Not financial advice.</strong> Live scores and model win probability are informational only. They are not tips and do not place bets for you.</p>
+      </aside>
+    </div>
+  </main>
+  <script src="{{ url_for('static', filename='js/tennis-trader.js') }}"></script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 """WSGI/dev entrypoint.
 
-Run locally with:  python wsgi.py   (Flask dev server)
+Run locally with:  python wsgi.py         (Flask dev server)
 Run in prod with:  gunicorn wsgi:app
 """
 

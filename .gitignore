@@ -1,3 +1,8 @@
+# Secrets — never commit real keys
+.env
+.env.*
+!.env.example
+
 # Python
 __pycache__/
 *.py[cod]
@@ -5,9 +10,6 @@ __pycache__/
 .pytest_cache/
 .venv/
 venv/
-
-# Env
-.env
 
 # Editor / OS
 .DS_Store
