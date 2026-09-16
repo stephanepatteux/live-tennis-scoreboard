@@ -1,5 +1,9 @@
 # Tennis Trader Board — live tennis scores for Betfair trading
 
+[![CI](https://github.com/stephanepatteux/live-tennis-scoreboard/actions/workflows/ci.yml/badge.svg)](https://github.com/stephanepatteux/live-tennis-scoreboard/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+
 A self-hosted, real-time **tennis scoreboard built for Betfair tennis traders**.
 It shows ATP &amp; WTA **sets, games, points, who is serving, 15–40 / 0–40
 break-point alerts**, and a **model win %** next to your ladder — and every point
@@ -207,6 +211,10 @@ Links to Live Tennis API on this page are affiliate links: if you subscribe thro
 them (optionally with code `botblog`), this project may earn a commission at no
 extra cost to you. You can also sign up directly at
 [livetennisapi.com](https://livetennisapi.com).
+
+## License
+
+Released under the [MIT License](LICENSE) — free to use, modify, and self-host.
 
 ## Disclaimer
 
